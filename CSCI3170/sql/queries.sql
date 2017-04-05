@@ -1,0 +1,110 @@
+/*
+	Student ID: 1155043317
+	Name:		Cheong Man Hoi
+*/
+
+/* Query 1 */
+Spool result1.lst
+SELECT T.TID, T.TITLE, T.TDATE, T.PERMISSION
+FROM TOPIC T, FORUM F, CATEGORY C
+WHERE T.FID = F.FID AND F.CID = C.CID AND C.CTITLE = 'Digital'
+ORDER BY T.TID DESC
+Spool off
+
+/* Query 2 */
+Spool result2.lst
+SELECT F.FID, F.FTITLE, COUNT(T.TID) AS NUM_OF_TOPIC
+FROM FORUM F, TOPIC T
+WHERE F.FID = T.FID
+GROUP BY F.FID
+ORDER BY F.FTITLE ASC
+Spool off
+
+/* Query 3 */
+Spool result3.lst
+SELECT T.TID, T.TITLE
+FROM TOPIC T
+WHERE T.TID NOT IN (SELECT T1.TID
+                    FROM TOPIC T1, POST P
+                    WHERE T1.TID = P.TID)
+ORDER BY T.TID DESC
+Spool off
+
+/* Query 4 */
+Spool result4.lst
+SELECT U.USERID, U.NAME
+FROM FUSER U
+WHERE U.USERID NOT IN (SELECT U1.USERID
+                       FROM FUSER U1, TOPIC T, POST P
+                       WHERE P.TID = T.TID AND P.USERID = T.USERID AND T.USERID = U1.USERID)
+ORDER BY U.NAME ASC
+Spool off
+
+/* Query 5 */
+Spool result5.lst
+SELECT U.USERID, U.NAME
+FROM FUSER U
+WHERE U.PERMISSION >= (SELECT MAX(T.PERMISSION)
+                       FROM TOPIC T)
+ORDER BY U.USERID DESC
+Spool off
+
+/* Query 6 */
+Spool result6.lst
+SELECT TMP1.FTITLE, (TMP2.NUM_OF_POSTS / TMP1.NUM_OF_TOPICS) AS AVG_POPULARITY
+FROM (SELECT F1.FID, F1.FTITLE, COUNT(T1.TID) AS NUM_OF_TOPICS
+      FROM FORUM F1, TOPIC T1
+      WHERE F1.FID = T1.FID
+      GROUP BY F1.FID) AS TMP1,
+     (SELECT F2.FID, F2.FTITLE, COUNT(P2.PID) AS NUM_OF_POSTS
+      FROM FORUM F2, TOPIC T2, POST P2
+      WHERE F2.FID = T2.FID AND T2.TID = P2.TID
+      GROUP BY F2.FID) AS TMP2
+WHERE TMP1.FID = TMP2.FID
+ORDER BY AVG_POPULARITY DESC
+Spool off
+
+/* Query 7 */
+Spool result7.lst
+SELECT T.TID, T.TITLE, T.TDATE
+FROM TOPIC T
+WHERE T.TID IN (SELECT TMP1.TID
+                FROM (SELECT T1.TID
+                      FROM FORUM F1, TOPIC T1
+                      WHERE F1.FTITLE = 'Camera' AND F1.FID = T1.FID
+                      ORDER BY T1.TDATE DESC) AS TMP1
+                WHERE ROWNUM < 21)
+      AND NOT IN (SELECT TMP2.TID
+                  FROM (SELECT T2.TID
+                        FROM FORUM F2, TOPIC T2
+                        WHERE F2.FTITLE = 'Camera' AND F2.FID = T2.FID
+                        ORDER BY T2.TDATE DESC) AS TMP2
+                  WHERE ROWNUM < 11)
+Spool off
+
+/* Query 8 */
+Spool result8.lst
+SELECT FINALT.TID, FINALT.TITLE, FINAL2.LATEST_UPDATE_DATE, FINAL1.NUM_OF_REPLY
+FROM (SELECT TMP.TID, TMP.NUM_OF_REPLY
+      FROM (SELECT T.TID, COUNT(P.PID) AS NUM_OF_REPLY
+            FROM TOPIC T, POST P
+            WHERE T.TID = P.TID
+            GROUP BY T.TID) AS TMP
+      WHERE TMP.TID NOT IN (SELECT DISTINCT TMP1.TID
+                            FROM (SELECT T1.TID, COUNT(P1.PID) AS NUM_OF_REPLY
+                                  FROM TOPIC T1, POST P1
+                                  WHERE T1.TID = P1.TID
+                                  GROUP BY T1.TID) AS TMP1,
+                                 (SELECT T2.TID, COUNT(P2.PID) AS NUM_OF_REPLY
+                                  FROM TOPIC T2, POST P2
+                                  WHERE T2.TID = P2.TID
+                                  GROUP BY T2.TID) AS TMP2
+                            WHERE TMP1.NUM_OF_REPLY < TMP2.NUM_OF_REPLY)) AS FINAL1,
+     (SELECT T3.TID, MAX(P3.PDATE) AS LATEST_UPDATE_DATE
+      FROM TOPIC T3, POST P3
+      WHERE T3.TID = P3.TID
+      GROUP BY T3.TID) AS FINAL2,
+      TOPIC FINALT
+WHERE FINALT.TID = FINAL1.TID AND FINALT.TID = FINAL2.TID
+ORDER BY FINAL2.LATEST_UPDATE_DATE DESC
+Spool off
